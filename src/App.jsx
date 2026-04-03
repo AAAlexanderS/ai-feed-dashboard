@@ -196,13 +196,21 @@ function DaySection({ day, isFirst, c, dark }) {
 // Collect Now Button
 // ═══════════════════════════════════════════
 function CollectButton({ c }) {
-  const [state, setState] = useState("idle") // idle | loading | success | error | needToken
+  const today = new Date().toISOString().slice(0, 10)
+  const [state, setState] = useState(() => {
+    try {
+      const last = localStorage.getItem("gh_last_collect")
+      if (last === today) return "done"
+    } catch {}
+    return "idle"
+  })
   const [token, setToken] = useState(() => {
     try { return localStorage.getItem("gh_dispatch_token") || "" } catch { return "" }
   })
   const [showInput, setShowInput] = useState(false)
 
   async function trigger() {
+    if (state === "done") return
     if (!token) { setShowInput(true); setState("needToken"); return }
     setState("loading")
     try {
@@ -215,9 +223,11 @@ function CollectButton({ c }) {
         body: JSON.stringify({ ref: "main" }),
       })
       if (res.status === 204) {
-        setState("success")
-        try { localStorage.setItem("gh_dispatch_token", token) } catch {}
-        setTimeout(() => setState("idle"), 4000)
+        setState("done")
+        try {
+          localStorage.setItem("gh_dispatch_token", token)
+          localStorage.setItem("gh_last_collect", today)
+        } catch {}
       } else {
         setState("error")
         setTimeout(() => setState("idle"), 3000)
@@ -231,7 +241,7 @@ function CollectButton({ c }) {
   const label = {
     idle: "⚡ Collect Now",
     loading: "Running...",
-    success: "✓ Triggered!",
+    done: "✓ Collected Today",
     error: "✗ Failed",
     needToken: "Enter token below",
   }[state]
@@ -240,14 +250,14 @@ function CollectButton({ c }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
       <button
         onClick={trigger}
-        disabled={state === "loading" || state === "success"}
+        disabled={state === "loading" || state === "done"}
         style={{
           padding: "8px 20px", borderRadius: 6, border: "none",
-          fontSize: 13, fontWeight: 600, cursor: state === "loading" ? "wait" : "pointer",
+          fontSize: 13, fontWeight: 600, cursor: state === "done" || state === "loading" ? "default" : "pointer",
           fontFamily: s.font, letterSpacing: "-0.01em",
-          background: state === "success" ? (c === theme.dark ? "#166534" : "#16a34a") : state === "error" ? "#dc2626" : c.collectBg,
-          color: state === "success" || state === "error" ? "#fff" : c.collectText,
-          opacity: state === "loading" ? 0.6 : 1,
+          background: state === "done" ? (c === theme.dark ? "#166534" : "#16a34a") : state === "error" ? "#dc2626" : c.collectBg,
+          color: state === "done" || state === "error" ? "#fff" : c.collectText,
+          opacity: state === "loading" ? 0.6 : state === "done" ? 0.7 : 1,
           transition: "all 0.2s",
         }}
       >

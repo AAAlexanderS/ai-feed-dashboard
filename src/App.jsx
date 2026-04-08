@@ -37,11 +37,12 @@ const theme = {
 // ═══════════════════════════════════════════
 function fmtDate(s) {
   try {
-    const d = new Date(s + "T00:00:00Z")
+    const d = new Date(s + "T12:00:00Z")  // 用中午避免任何时区跨日
     return {
-      month: d.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
-      day: d.getDate(), year: d.getFullYear(),
-      weekday: d.toLocaleDateString("en-US", { weekday: "long" }),
+      month: d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }).toUpperCase(),
+      day: d.getUTCDate(),
+      year: d.getUTCFullYear(),
+      weekday: d.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" }),
     }
   } catch { return { month: "---", day: "--", year: "----", weekday: "" } }
 }
